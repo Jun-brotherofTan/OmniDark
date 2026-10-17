@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "OmniDark Page Adapter",
+  "version": "1.0.0",
+  "description": "Applies selective dark colors to bright web pages while leaving visual media unchanged.",
+  "permissions": ["nativeMessaging", "tabs", "alarms"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "action": {
+    "default_title": "OmniDark",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
