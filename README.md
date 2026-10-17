@@ -6,7 +6,7 @@ Windows 10/11용 사용자 권한 트레이 유틸리티입니다. Windows API�
 
 - `OmniDark.Core`: 설정 저장, 표본 밝기 계산, 역할별 색상 매핑. OS 비의존 .NET 코드입니다.
 - `OmniDark.App`: WinForms 시스템 트레이, `SetWinEventHook` 창 감지, 사용자 설정, Chrome Native Messaging 호스트입니다. `LocalAppData/OmniDark` 아래에서 설정과 확장 상태를 로컬로만 교환합니다.
-- `chrome-extension`: Manifest V3 콘텐츠 스크립트가 현재 표시 영역의 DOM 배경색을 표본 분석하고, 밝은 페이지의 배경/어두운 텍스트 색상만 바꿉니다. `img`, `video`, `canvas`, `svg`, iframe, 이미지 배경은 대상에서 제외합니다.
+- `chrome-extension`: Manifest V3 콘텐츠 스크립트가 현재 표시 영역의 DOM 배경색을 표본 분석하고, 밝은 페이지의 배경/어두운 텍스트 색상만 바꿉니다. 투명한 요소는 부모 배경과 합성해 분석하며, HTML/BODY가 투명한 경우 브라우저의 기본 흰 캔버스 배경도 분석합니다. `img`, `video`, `canvas`, `svg`, iframe, 이미지 배경은 대상에서 제외합니다.
 - `tests/OmniDark.Core.Tests`: 외부 테스트 패키지 없이 실행하는 코어 회귀 검사입니다.
 
 | 앱 | 상태 | 동작과 한계 |
@@ -44,6 +44,8 @@ Chrome 확장 설치:
 
 이 스크립트는 명시적으로 실행할 때만 현재 사용자(`HKCU`)의 Chrome Native Messaging 등록을 추가합니다. 확장 ID는 Chrome에서 발급된 32자리 소문자 `a`~`p`여야 합니다. 설치 후 Chrome을 다시 시작하면 설정 화면의 확장 연결 상태가 갱신됩니다. 제거할 때는 `HKCU\Software\Google\Chrome\NativeMessagingHosts\com.omnidark.bridge` 키와 `%LOCALAPPDATA%\OmniDark`를 사용자가 직접 삭제할 수 있습니다.
 
+확장 코드 변경 후에는 `chrome://extensions`에서 OmniDark 카드의 새로고침 아이콘을 누르고, 테스트할 웹페이지도 새로고침하세요. 확장 새로고침은 이미 열린 탭의 콘텐츠 스크립트를 다시 주입하지 않습니다. 팝업에는 감지한 밝은 배경 비율, 분석 표본 수, 임계값, 적용 여부와 미적용 사유가 표시됩니다. 문제가 계속되면 해당 페이지 DevTools Console에서 `[OmniDark]` 진단 로그를, `chrome://extensions`의 서비스 워커 검사 창에서 Native Messaging 및 탭 설정 전달 로그를 확인합니다.
+
 압축해제 확장은 전체 HTTP/HTTPS 사이트에서 동작하기 위해 호스트 권한을 요청합니다. 분석은 브라우저와 PC 안에서만 이루어지며, 화면 캡처나 페이지 본문을 외부로 전송하지 않습니다. 현재 적용 상태를 트레이에 표시하기 위해 페이지 제목과 다크 적용 여부가 로컬 상태 파일에 기록됩니다.
 
 ## 사용 및 설정
@@ -60,9 +62,10 @@ dotnet build src/OmniDark.App/OmniDark.App.csproj
 node --check chrome-extension/content.js
 node --check chrome-extension/service-worker.js
 node --check chrome-extension/popup.js
+node --test tests/chrome-extension.test.js
 ```
 
-코어 검사에는 기본 설정, 마스크 처리된 이미지 표본 제외, 임계값 판정, 역할별 색상 변환, 설정 저장/불러오기가 포함됩니다. 브라우저에서 실제 이미지 보존과 레이아웃 호환성을 확인하려면 확장을 로드한 뒤 사진/영상이 있는 밝은 페이지와 어두운 페이지, 동적 콘텐츠를 열어 원본 미디어 색상 및 복원 동작을 확인해야 합니다. 현재 Linux 환경에서는 Chrome GUI와 Windows 트레이 동작을 자동화 검증할 수 없습니다.
+코어 검사에는 기본 설정, 마스크 처리된 이미지 표본 제외, 임계값 판정, 역할별 색상 변환, 설정 저장/불러오기가 포함됩니다. 확장 회귀 테스트는 투명한 HTML/BODY의 기본 캔버스 흰색, 투명한 자식의 부모 배경 판정, 어두운 페이지 보존, 엄격한 임계값 비교, 미디어 표본 제외를 검사합니다. 브라우저에서 실제 이미지 보존과 레이아웃 호환성을 확인하려면 확장을 로드한 뒤 사진/영상이 있는 밝은 페이지와 어두운 페이지, 동적 콘텐츠를 열어 원본 미디어 색상 및 복원 동작을 확인해야 합니다. 현재 Linux 환경에서는 Chrome GUI와 Windows 트레이 동작을 자동화 검증할 수 없습니다.
 
 ## 알려진 제한 및 문제 해결
 
